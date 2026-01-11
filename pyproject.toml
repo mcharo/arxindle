@@ -1,0 +1,19 @@
+[project]
+name = "arxiv2kindle"
+version = "0.1.0"
+description = "Convert ArXiv papers to Kindle-friendly PDFs"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.0.3",
+    "lxml>=5.0.0",
+    "requests>=2.26.0",
+    "wget>=3.2",
+]
+
+[project.scripts]
+arxiv2kindle = "arxiv2kindle:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
