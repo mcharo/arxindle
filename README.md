@@ -1,6 +1,6 @@
-# Arxiv2Kindle
+# arxindle
 
-Convert ArXiv papers to Kindle-friendly PDFs. Arxiv2Kindle downloads the LaTeX source from ArXiv and recompiles it with optimized formatting for e-readers like the Kindle.
+Convert ArXiv papers to Kindle-friendly PDFs. arxindle downloads the LaTeX source from ArXiv and recompiles it with optimized formatting for e-readers like the Kindle.
 
 ## Features
 
@@ -8,7 +8,6 @@ Convert ArXiv papers to Kindle-friendly PDFs. Arxiv2Kindle downloads the LaTeX s
 - **Full fidelity**: Renders images, diagrams, tables, and formulae correctly
 - **Single-column layout**: Converts 2-column academic formats into readable single-column
 - **Landscape mode**: Optional landscape orientation for wider content
-- **Send to Kindle**: Optionally email the converted PDF directly to your Kindle device
 
 ## Prerequisites
 
@@ -22,12 +21,42 @@ You'll need these tools installed on your system:
   - macOS: `brew install pdftk-java`
   - Ubuntu/Debian: `sudo apt install pdftk`
 
+### TeX Live Packages
+
+If you installed a minimal TeX distribution (like `basictex`), you may need additional packages for some papers. Install them with `tlmgr`:
+
+```bash
+# Recommended: Install common package collections
+sudo tlmgr install collection-latexrecommended collection-fontsrecommended
+
+# For most ArXiv papers, also install:
+sudo tlmgr install collection-latexextra   # algorithms, listings, etc.
+sudo tlmgr install ieeetran                # IEEE conference papers
+sudo tlmgr install acmart                  # ACM conference papers
+```
+
+**Common missing packages and their fixes:**
+
+| Error | Fix |
+|-------|-----|
+| `IEEEtran.cls not found` | `sudo tlmgr install ieeetran` |
+| `acmart.cls not found` | `sudo tlmgr install acmart` |
+| `algorithm2e.sty not found` | `sudo tlmgr install algorithm2e` |
+| `nicefrac.sty not found` | `sudo tlmgr install units` |
+| `threeparttable.sty not found` | `sudo tlmgr install threeparttable` |
+| `lipsum.sty not found` | `sudo tlmgr install lipsum` |
+| `microtype.sty not found` | `sudo tlmgr install microtype` |
+
+Alternatively, install the full TeX Live distribution to avoid missing packages:
+- macOS: `brew install --cask mactex` (~5GB)
+- Ubuntu/Debian: `sudo apt install texlive-full`
+
 ## Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/soumik12345/Arxiv2Kindle.git
-cd Arxiv2Kindle
+git clone https://github.com/mcharo/arxindle.git
+cd arxindle
 
 # Install with uv
 uv sync
@@ -46,90 +75,47 @@ pip install -r requirements.txt
 Convert a paper with default Kindle-friendly dimensions (4×6 inches):
 
 ```bash
-uv run arxiv2kindle -u "https://arxiv.org/abs/2301.00001"
+uv run arxindle -u "https://arxiv.org/abs/2301.00001" -o paper.pdf
 ```
-
-The converted PDF will be saved in a temporary directory (path printed to console).
 
 ### CLI Options
 
 ```
-Usage: arxiv2kindle [OPTIONS]
+Usage: arxindle [-h] -u URL -o PATH [-W WIDTH] [-H HEIGHT] [-m MARGIN] [-l] [-v]
 
 Options:
-  -u, --arxiv_url TEXT    ArXiv URL or paper ID (e.g., "2301.00001" or full URL)
-  -w, --width INTEGER     Page width in inches [default: 4]
-  -h, --height INTEGER    Page height in inches [default: 6]
-  -m, --margin FLOAT      Page margin in inches (must be between 0 and 1) [default: 0.2]
-  -l, --is_landscape      Enable landscape orientation (swaps width/height, requires pdftk)
-  -g, --gmail TEXT        Your Gmail address (for sending to Kindle)
-  -k, --kindle_mail TEXT  Your Kindle email address (for sending to Kindle)
-  --help                  Show this message and exit
+  -u, --url URL       ArXiv URL or paper ID (e.g., "2301.00001") [required]
+  -o, --output PATH   Output PDF path [required]
+  -W, --width WIDTH   Page width in inches (default: 4)
+  -H, --height HEIGHT Page height in inches (default: 6)
+  -m, --margin MARGIN Page margin in inches, 0-1 (default: 0.2)
+  -l, --landscape     Enable landscape orientation (requires pdftk)
+  -v, --verbose       Show detailed output including LaTeX logs
+  -h, --help          Show help message and exit
 ```
 
 ### Examples
 
 **Standard Kindle conversion:**
 ```bash
-uv run arxiv2kindle -u "https://arxiv.org/abs/2301.00001"
+uv run arxindle -u "https://arxiv.org/abs/2301.00001" -o paper.pdf
 ```
 
 **Custom dimensions for larger e-readers:**
 ```bash
-uv run arxiv2kindle -u "2301.00001" -w 6 -h 8 -m 0.3
+uv run arxindle -u "2301.00001" -o paper.pdf -W 6 -H 8 -m 0.3
 ```
 
 **Landscape mode (useful for papers with wide figures/tables):**
 ```bash
-uv run arxiv2kindle -u "2301.00001" -l
+uv run arxindle -u "2301.00001" -o paper.pdf -l
 ```
-
-**Send directly to your Kindle:**
-```bash
-uv run arxiv2kindle -u "2301.00001" -g "your.email@gmail.com" -k "your_kindle@kindle.com"
-```
-
-### Sending to Kindle
-
-The `-g` (Gmail) and `-k` (Kindle email) options let you send the converted PDF directly to your Kindle device via email:
-
-1. **Find your Kindle email address**: Go to Amazon → Manage Your Content and Devices → Preferences → Personal Document Settings. Your Kindle email looks like `name_XXXX@kindle.com`.
-
-2. **Add your Gmail to approved senders**: In the same settings page, add your Gmail address to the "Approved Personal Document E-mail List".
-
-3. **Use an App Password**: Gmail requires an [App Password](https://support.google.com/accounts/answer/185833) for third-party apps. Generate one in your Google Account settings.
-
-4. **Run with email options**: When you include both `-g` and `-k`, the tool will prompt for your Gmail app password and send the PDF to your Kindle.
 
 ## Limitations
 
 - **Source required**: Only works with ArXiv papers that have LaTeX source available (most do)
 - **LaTeX compatibility**: Some complex LaTeX setups may not recompile cleanly
 - **Results vary**: The automated transformations work well for most papers, but some may need manual adjustment
-
-## Converted Samples
-
-All photos captured on a Kindle Paperwhite 10th Generation:
-
-![](./assets/1.jpeg)
-
-![](./assets/2.jpeg)
-
-![](./assets/3.jpeg)
-
-![](./assets/6.jpeg)
-
-![](./assets/11.jpeg)
-
-![](./assets/13.jpeg)
-
-![](./assets/14.jpeg)
-
-![](./assets/15.jpeg)
-
-![](./assets/17.jpeg)
-
-![](./assets/18.jpeg)
 
 ## License
 

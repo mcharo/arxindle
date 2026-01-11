@@ -1,4 +1,1 @@
-click==8.0.3
-lxml>=5.0.0
-requests==2.26.0
-wget==3.2
+requests>=2.26.0
