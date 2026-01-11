@@ -317,6 +317,7 @@ class Arxiv2KindleConverter:
             shutil.copy(pdf_file, output)
 
         log.info(f"Conversion complete! PDF saved to: {output.resolve()}")
+        log.info("Send to Kindle at: https://www.amazon.com/sendtokindle")
 
 
 def setup_logging(verbose: bool) -> None:
