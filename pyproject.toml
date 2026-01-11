@@ -17,6 +17,14 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "isort>=7.0.0",
     "ruff>=0.14.11",
 ]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]  # E/F = pyflakes/pycodestyle, I = isort
+
+[tool.ruff.lint.isort]
+known-first-party = ["arxindle"]

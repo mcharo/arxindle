@@ -147,6 +147,7 @@ class Arxiv2KindleConverter:
                 "% geometry disabled by arxindle",
                 sty_content,
             )
+
             # Replace \twocolumn with \onecolumn in style files
             # If \twocolumn has an optional arg like [\@maketitle], preserve the content
             def replace_twocolumn(m):
@@ -216,6 +217,7 @@ class Arxiv2KindleConverter:
                 "% newgeometry disabled by arxindle",
                 src[i],
             )
+
             # Replace \twocolumn with \onecolumn, preserving optional arg content
             def replace_twocolumn_tex(m):
                 if m.group(1):
@@ -230,9 +232,7 @@ class Arxiv2KindleConverter:
             )
 
         # Find \begin{document}
-        begindocs = [
-            i for i, line in enumerate(src) if line.startswith(r"\begin{document}")
-        ]
+        begindocs = [i for i, line in enumerate(src) if line.startswith(r"\begin{document}")]
         if len(begindocs) != 1:
             raise ValueError(f"Expected 1 \\begin{{document}}, found {len(begindocs)}")
 
@@ -254,7 +254,7 @@ class Arxiv2KindleConverter:
         for i in range(len(src)):
             src[i] = re.sub(
                 r"\\includegraphics\[width=([.\d]+)\\(line|text)width\]",
-                lambda m: f"\\includegraphics[width={m.group(1)}\\textwidth,height={m.group(1)}\\textheight,keepaspectratio]",
+                lambda m: f"\\includegraphics[width={m.group(1)}\\textwidth,height={m.group(1)}\\textheight,keepaspectratio]",  # noqa: E501
                 src[i],
             )
 
@@ -289,9 +289,7 @@ class Arxiv2KindleConverter:
         bbl_file = work_dir / f"{texbase}.bbl"
         if list(work_dir.glob("*.bib")) or bbl_file.exists():
             log.debug("Running bibtex...")
-            subprocess.run(
-                ["bibtex", texbase], stdout=stdout, stderr=stdout, cwd=work_dir
-            )
+            subprocess.run(["bibtex", texbase], stdout=stdout, stderr=stdout, cwd=work_dir)
 
         log.info("Compiling LaTeX (pass 2/3)...")
         subprocess.run(pdflatex_cmd, stdout=stdout, stderr=stdout, cwd=work_dir)
@@ -332,15 +330,9 @@ def setup_logging(verbose: bool) -> None:
 
 def main(argv: list[str] | None = None) -> None:
     """CLI entry point."""
-    parser = argparse.ArgumentParser(
-        description="Convert ArXiv papers to Kindle-friendly PDFs"
-    )
-    parser.add_argument(
-        "-u", "--url", required=True, metavar="URL", help="ArXiv URL or paper ID"
-    )
-    parser.add_argument(
-        "-o", "--output", required=True, metavar="PATH", help="Output PDF path"
-    )
+    parser = argparse.ArgumentParser(description="Convert ArXiv papers to Kindle-friendly PDFs")
+    parser.add_argument("-u", "--url", required=True, metavar="URL", help="ArXiv URL or paper ID")
+    parser.add_argument("-o", "--output", required=True, metavar="PATH", help="Output PDF path")
     parser.add_argument(
         "-W", "--width", type=int, default=4, help="Page width in inches (default: 4)"
     )
