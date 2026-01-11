@@ -120,3 +120,7 @@ uv run arxindle -u "2301.00001" -o paper.pdf -l
 ## License
 
 See [LICENSE](./LICENSE) for details.
+
+## Credits
+
+- [Soumik Rakshit](https://github.com/soumik12345) for the original [arxiv2kindle](https://github.com/soumik12345/Arxiv2Kindle) project.
