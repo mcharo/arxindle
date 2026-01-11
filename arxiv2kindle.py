@@ -58,6 +58,20 @@ class Arxiv2KindleConverter:
         return arxiv_dir, arxiv_id, arxiv_title
     
     def process_tex(self, arxiv_dir, geometric_settings):
+        # First, neutralize geometry settings in any local .sty files
+        styfiles = glob(os.path.join(arxiv_dir, '*.sty'))
+        for styfile in styfiles:
+            with open(styfile, 'r') as f:
+                sty_content = f.read()
+            # Comment out geometry package loading and newgeometry calls in style files
+            # Use re.DOTALL to handle multi-line arguments
+            sty_content = re.sub(r'\\usepackage(\[[^\]]*\])?\{geometry\}', '% geometry disabled by arxiv2kindle', sty_content)
+            sty_content = re.sub(r'\\newgeometry\s*\{[^}]*\}', '% newgeometry disabled by arxiv2kindle', sty_content, flags=re.DOTALL)
+            sty_content = re.sub(r'\\geometry\s*\{[^}]*\}', '% geometry disabled by arxiv2kindle', sty_content, flags=re.DOTALL)
+            sty_content = re.sub(r'\\RequirePackage(\[[^\]]*\])?\{geometry\}', '% geometry disabled by arxiv2kindle', sty_content)
+            with open(styfile, 'w') as f:
+                f.write(sty_content)
+        
         texfiles = glob(os.path.join(arxiv_dir, '*.tex'))
         for texfile in texfiles:
             with open(texfile, 'r') as f:
@@ -73,11 +87,19 @@ class Arxiv2KindleConverter:
         src[0] = re.sub(r'\b\w+paper\b', '', src[0])
         src[0] = re.sub(r'(?<=\[),', '', src[0]) # remove extraneous starting commas
         src[0] = re.sub(r',(?=[\],])', '', src[0]) # remove extraneous middle/ending commas
+        # Comment out \newgeometry calls that would override our settings
+        for i in range(len(src)):
+            src[i] = re.sub(r'\\newgeometry\s*\{[^}]*\}', '% \\\\newgeometry disabled by arxiv2kindle', src[i])
         # find begin{document}:
         begindocs = [i for i, line in enumerate(src) if line.startswith(r'\begin{document}')]
         assert(len(begindocs) == 1)
-        src.insert(begindocs[0], '\\usepackage['+','.join(
-            k+'='+v for k,v in geometric_settings.items())+']{geometry}\n')
+        # Use \geometry{} command instead of \usepackage[]{geometry} to avoid
+        # "option clash" errors when geometry is already loaded by the document.
+        # Insert in reverse order since each insert at same position pushes previous down
+        src.insert(begindocs[0], '\\geometry{'+','.join(
+            k+'='+v for k,v in geometric_settings.items())+'}\n')
+        # Ensure geometry is loaded (conditional load won't error if already loaded)
+        src.insert(begindocs[0], '\\makeatletter\\@ifpackageloaded{geometry}{}{\\usepackage{geometry}}\\makeatother\n')
         src.insert(begindocs[0], '\\usepackage{times}\n')
         src.insert(begindocs[0], '\\pagestyle{empty}\n')
         if self.is_landscape:
@@ -95,14 +117,26 @@ class Arxiv2KindleConverter:
         os.rename(texfile, texfile + '.bak')
         with open(texfile, 'w') as f:
             f.writelines(src)
-        subprocess.run(
-            [
-                'pdflatex', texfile,
-                '&&', 'pdflatex', texfile,
-                '&&', 'pdflatex', texfile
-            ], stdout=sys.stderr,
-            cwd=Path(texfile).parent
-        )
+        
+        cwd = Path(texfile).parent
+        texbase = Path(texfile).stem
+        
+        # Run pdflatex with -interaction=nonstopmode to avoid hanging on errors
+        pdflatex_cmd = ['pdflatex', '-interaction=nonstopmode', texfile]
+        
+        # First pass
+        subprocess.run(pdflatex_cmd, stdout=sys.stderr, cwd=cwd)
+        
+        # Run bibtex if .bib file exists or .bbl was generated
+        bbl_file = cwd / f'{texbase}.bbl'
+        bib_files = list(cwd.glob('*.bib'))
+        if bib_files or bbl_file.exists():
+            subprocess.run(['bibtex', texbase], stdout=sys.stderr, cwd=cwd)
+        
+        # Second and third passes to resolve references
+        subprocess.run(pdflatex_cmd, stdout=sys.stderr, cwd=cwd)
+        subprocess.run(pdflatex_cmd, stdout=sys.stderr, cwd=cwd)
+        
         return texfile[:-4] + '.pdf'
     
     def execute_pipeline(self, width: int, height: int, margin: float):
